@@ -23,10 +23,14 @@ GRAVITY = 0.75
 moving_left = False
 moving_right = False
 shoot = False
+mustard = False
+mustard_thrown = False
 
 #load images
 #rock
 pebble_img = pygame.image.load('img/Icons/pebble.png').convert_alpha()
+#mustard grenade
+mustard_img = pygame.image.load('img/Icons/mustard.png').convert_alpha()
 
 #define colours
 BG = (144, 201, 120)
@@ -38,7 +42,7 @@ def draw_bg():
 
 
 class Character(pygame.sprite.Sprite):
-    def __init__(self, char_type, x, y, scale, speed, ammo):
+    def __init__(self, char_type, x, y, scale, speed, ammo, mustards):
         pygame.sprite.Sprite.__init__(self)
         self.alive = True
         self.char_type = char_type
@@ -46,6 +50,7 @@ class Character(pygame.sprite.Sprite):
         self.ammo = ammo
         self.start_ammo = ammo
         self.shoot_cooldown = 0
+        self.mustards = mustards
         self.health = 100
         self.max_health = self.health
         self.direction = 1
@@ -189,11 +194,42 @@ class Pebble(pygame.sprite.Sprite):
                 print(enemy.health)
                 self.kill()
 
+class Mustard(pygame.sprite.Sprite):
+    def __init__(self, x, y, direction):
+        pygame.sprite.Sprite.__init__(self)
+        self.timer = 100
+        self.vel_y = -11
+        self.speed = 7
+        self.image = mustard_img
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        self.direction = direction
+
+    def update(self):
+        self.vel_y += GRAVITY
+        dx = self.direction * self.speed
+        dy = self.vel_y
+
+        #check collision with floor
+        if self.rect.bottom + dy > 400:
+            dy = 400 - self.rect.bottom
+            self.speed = 0
+
+        # check collision with walls
+        if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
+            self.direction *= -1
+            dx = self.direction * self.speed
+
+        #update mustard grenade
+        self.rect.x += dx
+        self.rect.y += dy
+
 #create sprite groups
 pebble_group = pygame.sprite.Group()
+mustard_group = pygame.sprite.Group()
 
-player = Character('Player', 200, 200, .5, 5, 5)
-enemy = Character('Enemy', 400, 200, .5, 5, 20)
+player = Character('Player', 200, 200, .5, 5, 10, 5)
+enemy = Character('Enemy', 400, 200, .5, 5, 0, 0)
 
 run = True
 while run:
@@ -210,12 +246,23 @@ while run:
 
     #update and draw groups
     pebble_group.update()
+    mustard_group.update()
     pebble_group.draw(screen)
+    mustard_group.draw(screen)
 
     #update player actions
     if player.alive:
+        #throw pebbles
         if shoot:
             player.shoot()
+        #throw mustard grenade
+        elif mustard and mustard_thrown == False and player.mustards > 0:
+            mustard = Mustard(player.rect.centerx + (0.5 * player.rect.size[0] * player.direction),\
+                              player.rect.top, player.direction)
+            mustard_group.add(mustard)
+            #reduce mustard grenades
+            player.mustards -= 1
+            mustard_thrown = True
         if player.in_air:
             player.update_action(2)     # 2: jump
         elif moving_left or moving_right:
@@ -240,6 +287,8 @@ while run:
                 moving_right = True
             if event.key == pygame.K_w:
                 shoot = True
+            if event.key == pygame.K_e:
+                mustard = True
             if event.key == pygame.K_SPACE and player.alive:
                 player.jump = True
             if event.key == pygame.K_ESCAPE:
@@ -257,6 +306,9 @@ while run:
                 moving_right = False
             if event.key == pygame.K_w:
                 shoot = False
+            if event.key == pygame.K_e:
+                mustard = False
+                mustard_thrown = False
 
     pygame.display.update()
 
