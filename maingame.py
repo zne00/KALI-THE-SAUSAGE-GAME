@@ -18,6 +18,7 @@ FPS = 60
 
 #define game variables
 GRAVITY = 0.75
+TILE_SIZE = 40
 
 #define player action variables
 moving_left = False
@@ -31,10 +32,29 @@ mustard_thrown = False
 pebble_img = pygame.image.load('img/Icons/pebble.png').convert_alpha()
 #mustard grenade
 mustard_img = pygame.image.load('img/Icons/mustard.png').convert_alpha()
+#pickup boxes
+health_box_img = pygame.image.load('img/Icons/health_box.png').convert_alpha()
+ammo_box_img = pygame.image.load('img/Icons/ammo_box.png').convert_alpha()
+grenade_box_img = pygame.image.load('img/Icons/grenade_box.png').convert_alpha()
+item_boxes = {
+    'Health'    : health_box_img,
+    'Ammo'      : ammo_box_img,
+    'Grenade'   : grenade_box_img
+}
 
 #define colours
 BG = (144, 201, 120)
 RED = (255, 0, 0)
+WHITE = (255, 255, 255)
+GREEN = (0, 255, 0)
+BLACK = (0, 0, 0)
+
+#define font
+font = pygame.font.SysFont('Futura', 30)
+
+def draw_text(text, font, text_col, x, y):
+    img = font.render(text, True, text_col)
+    screen.blit(img, (x, y))
 
 def draw_bg():
     screen.fill(BG)
@@ -166,6 +186,47 @@ class Character(pygame.sprite.Sprite):
 
     def draw(self):
         screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
+        pygame.draw.rect(screen, RED, self.rect, 1)
+
+class ItemBox(pygame.sprite.Sprite):
+    def __init__(self, item_type, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.item_type = item_type
+        self.image = item_boxes[self.item_type]
+        self.rect = self.image.get_rect()
+        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+
+    def update(self):
+        #check if player has picked up the item box
+        if pygame.sprite.collide_rect(self, player):
+            #check what kind of box it was
+            if self.item_type == 'Health':
+                player.health += 25
+                if player.health > player.max_health:
+                    player.health = player.max_health
+                print(player.health)
+            elif self.item_type == 'Ammo':
+                player.ammo += 5
+            elif self.item_type == 'Grenade':
+                player.mustards += 3
+            #delete the item box
+            self.kill()
+
+class HealthBar():
+    def __init__(self, x, y, health, max_health):
+        self.x = x
+        self.y = y
+        self.health = health
+        self.max_health = max_health
+
+    def draw(self, health):
+        #update with new health
+        self.health = health
+        #calculate health ratio
+        ratio = self.health / self.max_health
+        pygame.draw.rect(screen, BLACK, (self.x - 2, self.y - 2, 154, 24))
+        pygame.draw.rect(screen, RED, (self.x, self.y, 150, 20))
+        pygame.draw.rect(screen, GREEN, (self.x, self.y, 150 * ratio, 20))
 
 class Pebble(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
@@ -188,11 +249,12 @@ class Pebble(pygame.sprite.Sprite):
             if player.alive:
                 player.health -= 5
                 self.kill()
-        if pygame.sprite.spritecollide(enemy, pebble_group, False):
-            if enemy.alive:
-                enemy.health -= 25
-                print(enemy.health)
-                self.kill()
+        for enemy in enemy_group:
+            if pygame.sprite.spritecollide(enemy, pebble_group, False):
+                if enemy.alive:
+                    enemy.health -= 25
+                    print(enemy.health)
+                    self.kill()
 
 class Mustard(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
@@ -220,16 +282,73 @@ class Mustard(pygame.sprite.Sprite):
             self.direction *= -1
             dx = self.direction * self.speed
 
-        #update mustard grenade
+        #update mustard grenade position
         self.rect.x += dx
         self.rect.y += dy
 
+        #countdown timer
+        self.timer -= 1
+        if self.timer <= 0:
+            self.kill()
+            explosion = Explosion(self.rect.x, self.rect.y, 0.5)
+            explosion_group.add(explosion)
+            #do damage to anyone that is nearby
+            if abs(self.rect.centerx - player.rect.centerx) < TILE_SIZE * 2 and \
+                abs(self.rect.centery - player.rect.centery) < TILE_SIZE * 2:
+                player.health -= 50
+            for enemy in enemy_group:
+                if abs(self.rect.centerx - enemy.rect.centerx) < TILE_SIZE * 2 and \
+                        abs(self.rect.centery - enemy.rect.centery) < TILE_SIZE * 2:
+                        enemy.health -= 50
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, x, y, scale):
+        pygame.sprite.Sprite.__init__(self)
+        self.images = []
+        for num in range(1, 6):
+            img = pygame.image.load(f'img/explosion/exp{num}.png').convert_alpha()
+            img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
+            self.images.append(img)
+        self.frame_index = 0
+        self.image = self.images[self.frame_index]
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        self.counter = 0
+
+    def update(self):
+        EXPLOSION_SPEED = 4
+        #update explosion animation
+        self.counter += 1
+
+        if self.counter >= EXPLOSION_SPEED:
+            self.counter = 0
+            self.frame_index += 1
+            #if the animation is complete then delete the explosion
+            if self.frame_index >= len(self.images):
+                self.kill()
+            else:
+                self.image = self.images[self.frame_index]
+
 #create sprite groups
+enemy_group = pygame.sprite.Group()
 pebble_group = pygame.sprite.Group()
 mustard_group = pygame.sprite.Group()
+explosion_group = pygame.sprite.Group()
+item_box_group = pygame.sprite.Group()
 
-player = Character('Player', 200, 200, .5, 5, 10, 5)
-enemy = Character('Enemy', 400, 200, .5, 5, 0, 0)
+#temp - create item boxes
+item_box = ItemBox('Health', 100, 370)
+item_box_group.add(item_box)
+item_box = ItemBox('Ammo', 400, 370)
+item_box_group.add(item_box)
+item_box = ItemBox('Grenade', 500, 370)
+item_box_group.add(item_box)
+
+player = Character('Player', 200, 200, .5, 5, 10, 5) #(Starting Point, n/a, Size, Movement Speed, Ammo, Grenade)
+health_bar = HealthBar(10, 10, player.health, player.health)
+enemy = Character('Enemy', 400, 350, .5, 5, 0, 0)
+enemy2 = Character('Enemy', 800, 350, .5, 5, 0, 0)
+enemy_group.add(enemy)
+enemy_group.add(enemy2)
 
 run = True
 while run:
@@ -237,18 +356,33 @@ while run:
     clock.tick(FPS)
 
     draw_bg()
+    #show player health
+    health_bar.draw(player.health)
+    #show pebbles
+    draw_text(f'PEBBLES: ', font, WHITE, 10, 35)
+    for x in range(player.ammo):
+        screen.blit(pebble_img, (120 + (x * 22), 35)) #(Width, Space, Height)
+    # show mustard grenades
+    draw_text(f'MUSTARD: ', font, WHITE, 10, 80)
+    for x in range(player.mustards):
+        screen.blit(mustard_img, (90 + (x * 22), 40)) #(Width, Space, Height)
 
     player.update()
     player.draw()
 
-    enemy.update()
-    enemy.draw()
+    for enemy in enemy_group:
+        enemy.update()
+        enemy.draw()
 
     #update and draw groups
     pebble_group.update()
     mustard_group.update()
+    explosion_group.update()
+    item_box_group.update()
     pebble_group.draw(screen)
     mustard_group.draw(screen)
+    explosion_group.draw(screen)
+    item_box_group.draw(screen)
 
     #update player actions
     if player.alive:
