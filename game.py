@@ -39,11 +39,17 @@ class Game():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     self.START_KEY = True
+                elif event.key == pygame.K_SPACE:
+                    self.START_KEY = True
                 if event.key == pygame.K_BACKSPACE:
                     self.BACK_KEY = True
                 if event.key == pygame.K_DOWN:
                     self.DOWN_KEY = True
+                elif event.key == pygame.K_s:
+                    self.DOWN_KEY = True
                 if event.key == pygame.K_UP:
+                    self.UP_KEY = True
+                elif event.key == pygame.K_w:
                     self.UP_KEY = True
 
     def reset_keys(self):

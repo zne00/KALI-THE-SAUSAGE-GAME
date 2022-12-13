@@ -1,5 +1,6 @@
 import pygame
 import os
+import random
 
 pygame.init()
 
@@ -83,6 +84,11 @@ class Character(pygame.sprite.Sprite):
         self.frame_index = 0
         self.action = 0
         self.update_time = pygame.time.get_ticks()
+        #ai specific variables
+        self.move_counter = 0
+        self.vision = pygame.Rect(0, 0, 150, 20)
+        self.idling = False
+        self.idling_counter = 0
 
         #load all images for the player
         animation_types = ['Idle', 'Run', 'Jump', 'Death']
@@ -147,10 +153,45 @@ class Character(pygame.sprite.Sprite):
     def shoot(self):
         if self.shoot_cooldown == 0 and self.ammo > 0:
             self.shoot_cooldown = 20
-            pebble = Pebble(self.rect.centerx + (0.5 * self.rect.size[0] * self.direction), self.rect.centery, self.direction)
+            pebble = Pebble(self.rect.centerx + (0.75 * self.rect.size[0] * self.direction), self.rect.centery, self.direction)
             pebble_group.add(pebble)
             #reduce ammo
             self.ammo -= 1
+
+    def ai(self):
+        if self.alive and player.alive:
+            if self.idling == False and random.randint(1, 200) == 1:
+                self.update_action(0)#0: idle
+                self.idling = True
+                self.idling_counter = 50
+            #check if the ai is near the player
+            if self.vision.colliderect(player.rect):
+                #stop running and face the player
+                self.update_action(0)#0: idle
+                #shoot
+                self.shoot()
+            else:
+                if self.idling == False:
+                    if self.direction == 1:
+                        ai_moving_right = True
+                    else:
+                        ai_moving_right = False
+                    ai_moving_left = not ai_moving_right
+                    self.move(ai_moving_left, ai_moving_right)
+                    self.update_action(1)#1: run
+                    self.move_counter += 1
+                    #update ai vision as the enemy moves
+                    self.vision.center = (self.rect.centerx + 75 * self.direction, self.rect.centery)
+                    pygame.draw.rect(screen, RED, self.vision)
+
+                    if self.move_counter > TILE_SIZE:
+                        self.direction *= -1
+                        self.move_counter *= -1
+
+                else:
+                    self.idling_counter -= 1
+                    if self.idling_counter <= 0:
+                        self.idling = False
 
     def update_animation(self):
         #update animation
@@ -345,8 +386,8 @@ item_box_group.add(item_box)
 
 player = Character('Player', 200, 200, .5, 5, 10, 5) #(Starting Point, n/a, Size, Movement Speed, Ammo, Grenade)
 health_bar = HealthBar(10, 10, player.health, player.health)
-enemy = Character('Enemy', 400, 350, .5, 5, 0, 0)
-enemy2 = Character('Enemy', 800, 350, .5, 5, 0, 0)
+enemy = Character('Enemy', 400, 350, .5, 2, 0, 0)
+enemy2 = Character('Enemy', 800, 350, .5, 2, 0, 0)
 enemy_group.add(enemy)
 enemy_group.add(enemy2)
 
@@ -371,6 +412,7 @@ while run:
     player.draw()
 
     for enemy in enemy_group:
+        enemy.ai()
         enemy.update()
         enemy.draw()
 
