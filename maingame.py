@@ -23,7 +23,7 @@ GRAVITY = 0.75
 ROWS = 16
 COLS = 150
 TILE_SIZE = SCREEN_HEIGHT // ROWS
-
+TILE_TYPES = 21
 level = 1
 
 #define player action variables
@@ -34,6 +34,12 @@ mustard = False
 mustard_thrown = False
 
 #load images
+#store tiles in a list
+img_list = []
+for x in range(TILE_TYPES):
+    img = pygame.image.load(f'img/tile/{x}.png')
+    img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
+    img_list.append(img)
 #rock
 pebble_img = pygame.image.load('img/Icons/pebble.png').convert_alpha()
 #mustard grenade
@@ -232,7 +238,66 @@ class Character(pygame.sprite.Sprite):
 
     def draw(self):
         screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
-        pygame.draw.rect(screen, RED, self.rect, 1)
+
+class World():
+    def __init__(self):
+        self.obstacle_list = []
+
+    def process_data(self, data):
+        #iterate through each value in level data file
+        for y, row in enumerate(data):
+            for x, tile in enumerate(row):
+                if tile >= 0:
+                    img = img_list[tile]
+                    img_rect = img.get_rect()
+                    img_rect.x = x * TILE_SIZE
+                    img_rect.y = y * TILE_SIZE
+                    tile_data = (img, img_rect)
+                    if tile >= 0 and tile <= 8:
+                        self.obstacle_list.append(tile_data)
+                    elif tile >= 9 and tile <= 10:
+                        pass
+                    elif tile >= 11 and tile <= 14:
+                        decoration = Decoration(img, x * TILE_SIZE, y * TILE_SIZE)
+                        decoration_group.add(decoration)
+                    elif tile == 15:#create player
+                        player = Character('player', x * TILE_SIZE, y * TILE_SIZE, .5, 5, 20, 5)
+                        health_bar = HealthBar(10, 10, player.health, player.health)
+                    elif tile == 16:#create enemies
+                        enemy = Character('enemy', x * TILE_SIZE, y * TILE_SIZE, .5, 2, 20, 0)
+                        enemy_group.add(enemy)
+                    elif tile == 17:#create ammo box
+                        item_box = ItemBox('Ammo', x * TILE_SIZE, y * TILE_SIZE)
+                        item_box_group.add(item_box)
+                    elif tile == 18:#create grenade box
+                        item_box = ItemBox('Grenade', x * TILE_SIZE, y * TILE_SIZE)
+                        item_box_group.add(item_box)
+                    elif tile == 19:#create health box
+                        item_box = ItemBox('Health', x * TILE_SIZE, y * TILE_SIZE)
+                        item_box_group.add(item_box)
+                    elif tile == 20:#create exit
+                        exit = Exit(img, x * TILE_SIZE, y * TILE_SIZE)
+                        exit_group.add(exit)
+
+        return player, health_bar
+
+    def draw(self):
+        for tile in self.obstacle_list:
+            screen.blit(tile[0], tile[1])
+
+class Decoration(pygame.sprite.Sprite):
+    def __init__(self, img, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = img
+        self.rect = self.image.get_rect()
+        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+
+class Exit(pygame.sprite.Sprite):
+    def __init__(self, img, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = img
+        self.rect = self.image.get_rect()
+        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
 
 class ItemBox(pygame.sprite.Sprite):
     def __init__(self, item_type, x, y):
@@ -380,28 +445,32 @@ pebble_group = pygame.sprite.Group()
 mustard_group = pygame.sprite.Group()
 explosion_group = pygame.sprite.Group()
 item_box_group = pygame.sprite.Group()
+decoration_group = pygame.sprite.Group()
+exit_group = pygame.sprite.Group()
 
-#temp - create item boxes
-item_box = ItemBox('Health', 100, 370)
-item_box_group.add(item_box)
-item_box = ItemBox('Ammo', 400, 370)
-item_box_group.add(item_box)
-item_box = ItemBox('Grenade', 500, 370)
-item_box_group.add(item_box)
-
-player = Character('Player', 200, 200, .5, 5, 10, 5) #(Starting Point, n/a, Size, Movement Speed, Ammo, Grenade)
-health_bar = HealthBar(10, 10, player.health, player.health)
-enemy = Character('Enemy', 400, 350, .5, 2, 0, 0)
-enemy2 = Character('Enemy', 800, 350, .5, 2, 0, 0)
-enemy_group.add(enemy)
-enemy_group.add(enemy2)
+#create empty tile list
+world_data = []
+for row in range(ROWS):
+    r = [-1] * COLS
+    world_data.append(r)
+#load in level data and create world
+with open(f'level{level}_data.csv', newline='') as csvfile:
+    reader = csv.reader(csvfile, delimiter=',')
+    for x, row in enumerate(reader):
+        for y, tile in enumerate(row):
+            world_data[x][y] = int(tile)
+world = World()
+player, health_bar = world.process_data(world_data)
 
 run = True
 while run:
 
     clock.tick(FPS)
 
+    #update background
     draw_bg()
+    #draw world map
+    world.draw()
     #show player health
     health_bar.draw(player.health)
     #show pebbles
@@ -426,10 +495,14 @@ while run:
     mustard_group.update()
     explosion_group.update()
     item_box_group.update()
+    decoration_group.update()
+    exit_group.update()
     pebble_group.draw(screen)
     mustard_group.draw(screen)
     explosion_group.draw(screen)
     item_box_group.draw(screen)
+    decoration_group.draw(screen)
+    exit_group.draw(screen)
 
     #update player actions
     if player.alive:
