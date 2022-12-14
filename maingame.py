@@ -1,12 +1,13 @@
 import pygame
 import os
 import random
+import csv
 
 pygame.init()
 
 
-SCREEN_WIDTH = 1600
-SCREEN_HEIGHT = 900
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = int(SCREEN_WIDTH * 0.8)
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('KALI THE SAUSAGE')
@@ -19,7 +20,11 @@ FPS = 60
 
 #define game variables
 GRAVITY = 0.75
-TILE_SIZE = 40
+ROWS = 16
+COLS = 150
+TILE_SIZE = SCREEN_HEIGHT // ROWS
+
+level = 1
 
 #define player action variables
 moving_left = False
@@ -400,13 +405,13 @@ while run:
     #show player health
     health_bar.draw(player.health)
     #show pebbles
-    draw_text(f'PEBBLES: ', font, WHITE, 10, 35)
+    draw_text(f'PEBBLES: ', font, WHITE, 10, 45) #(Size, Height)
     for x in range(player.ammo):
-        screen.blit(pebble_img, (120 + (x * 22), 35)) #(Width, Space, Height)
+        screen.blit(pebble_img, (120 + (x * 22), 45)) #(Width, Space, Height)
     # show mustard grenades
-    draw_text(f'MUSTARD: ', font, WHITE, 10, 80)
+    draw_text(f'MUSTARD: ', font, WHITE, 10, 80) #(Size, Height)
     for x in range(player.mustards):
-        screen.blit(mustard_img, (90 + (x * 22), 40)) #(Width, Space, Height)
+        screen.blit(mustard_img, (125 + (x * 22), 75)) #(Width, Space, Height)
 
     player.update()
     player.draw()
