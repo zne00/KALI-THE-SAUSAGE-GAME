@@ -305,9 +305,7 @@ class World():
                     tile_data = (img, img_rect)
                     if tile >= 0 and tile <= 8:
                         self.obstacle_list.append(tile_data)
-                    elif tile >= 9 and tile <= 10:
-                        pass
-                    elif tile >= 11 and tile <= 14:
+                    elif tile >= 9 and tile <= 14:
                         decoration = Decoration(img, x * TILE_SIZE, y * TILE_SIZE)
                         decoration_group.add(decoration)
                     elif tile == 15:#create player
