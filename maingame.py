@@ -98,6 +98,7 @@ class Character(pygame.sprite.Sprite):
         self.max_health = self.health
         self.direction = 1
         self.vel_y = 0
+        self.attacking = False
         self.jump = False
         self.in_air = True
         self.flip = False
@@ -237,7 +238,6 @@ class Character(pygame.sprite.Sprite):
                     self.move_counter += 1
                     #update ai vision as the enemy moves
                     self.vision.center = (self.rect.centerx + 75 * self.direction, self.rect.centery)
-                    pygame.draw.rect(screen, RED, self.vision)
 
                     if self.move_counter > TILE_SIZE:
                         self.direction *= -1
@@ -303,29 +303,29 @@ class World():
                     img_rect.x = x * TILE_SIZE
                     img_rect.y = y * TILE_SIZE
                     tile_data = (img, img_rect)
-                    if tile >= 0 and tile <= 8:
+                    if tile >= 0 and tile <= 1:
                         self.obstacle_list.append(tile_data)
-                    elif tile >= 9 and tile <= 14:
+                    elif tile >= 2 and tile <= 15:
                         decoration = Decoration(img, x * TILE_SIZE, y * TILE_SIZE)
                         decoration_group.add(decoration)
-                    elif tile == 15:#create player
-                        player = Character('player', x * TILE_SIZE, y * TILE_SIZE, .5, 5, 20, 5)
+                    elif tile == 16:#create player
+                        player = Character('player', x * TILE_SIZE, y * TILE_SIZE, .5, 5, 5, 3)
                         health_bar = HealthBar(10, 10, player.health, player.health)
-                    elif tile == 16:#create enemies
+                    elif tile == 17:#create enemies
                         enemy = Character('enemy', x * TILE_SIZE, y * TILE_SIZE, .5, 2, 0, 0)
                         enemy_group.add(enemy)
-                    elif tile == 17:#create ammo box
+                    elif tile == 18:#create ammo box
                         item_box = ItemBox('Ammo', x * TILE_SIZE, y * TILE_SIZE)
                         item_box_group.add(item_box)
-                    elif tile == 18:#create grenade box
+                    elif tile == 19:#create grenade box
                         item_box = ItemBox('Grenade', x * TILE_SIZE, y * TILE_SIZE)
                         item_box_group.add(item_box)
-                    elif tile == 19:#create health box
+                    elif tile == 20:#create health box
                         item_box = ItemBox('Health', x * TILE_SIZE, y * TILE_SIZE)
                         item_box_group.add(item_box)
-                    elif tile == 20:#create exit
-                        exit = Exit(img, x * TILE_SIZE, y * TILE_SIZE)
-                        exit_group.add(exit)
+                    #elif tile == 25:#create exit
+                        #exit = Exit(img, x * TILE_SIZE, y * TILE_SIZE)
+                        #exit_group.add(exit)
 
         return player, health_bar
 
