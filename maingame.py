@@ -74,7 +74,7 @@ item_boxes = {
 }
 
 #define colours
-BG = (144, 201, 120)
+BG = (255, 100, 0)
 BACKGROUND = pygame.image.load('img/background/Cloud.png')
 RED = (255, 0, 0)
 WHITE = (255, 255, 255)
@@ -279,6 +279,7 @@ class Character(pygame.sprite.Sprite):
                     #update ai vision as the enemy moves
                     self.vision.center = (self.rect.centerx + 75 * self.direction, self.rect.centery)
 
+
                     if self.move_counter > TILE_SIZE:
                         self.direction *= -1
                         self.move_counter *= -1
@@ -343,16 +344,16 @@ class World():
                     img_rect.x = x * TILE_SIZE
                     img_rect.y = y * TILE_SIZE
                     tile_data = (img, img_rect)
-                    if tile >= 0 and tile <= 1:
+                    if tile >= 0 and tile <= 3:
                         self.obstacle_list.append(tile_data)
-                    elif tile >= 2 and tile <= 14:
+                    elif tile >= 4 and tile <= 14:
                         decoration = Decoration(img, x * TILE_SIZE, y * TILE_SIZE)
                         decoration_group.add(decoration)
                     elif tile == 15:#create player
                         player = Character('player', x * TILE_SIZE, y * TILE_SIZE, .5, 5, 5, 3)
                         health_bar = HealthBar(10, 10, player.health, player.health)
                     elif tile == 16:#create enemies
-                        enemy = Character('enemy', x * TILE_SIZE, y * TILE_SIZE, .5, 2, 0, 0)
+                        enemy = Character('enemy', x * TILE_SIZE, y * TILE_SIZE, .5, 2, 10, 0)
                         enemy_group.add(enemy)
                     elif tile == 17:#create ammo box
                         item_box = ItemBox('Ammo', x * TILE_SIZE, y * TILE_SIZE)
