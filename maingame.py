@@ -2,6 +2,7 @@ import pygame
 import os
 import random
 import csv
+import button
 
 pygame.init()
 
@@ -25,9 +26,11 @@ ROWS = 16
 COLS = 150
 TILE_SIZE = SCREEN_HEIGHT // ROWS
 TILE_TYPES = 21
+MAX_LEVELS = 2
 screen_scroll = 0
 bg_scroll = 0
 level = 1
+start_game = False
 
 #define player action variables
 moving_left = False
@@ -37,6 +40,15 @@ mustard = False
 mustard_thrown = False
 
 #load images
+#button images
+sausage_img = pygame.image.load('img/Buttons/SAUSAGE.png').convert_alpha()
+start_img = pygame.image.load('img/Buttons/PLAY.png').convert_alpha()
+options_img = pygame.image.load('img/Buttons/OPTIONS.png').convert_alpha()
+credits_img = pygame.image.load('img/Buttons/CREDITS.png').convert_alpha()
+exit_img = pygame.image.load('img/Buttons/QUIT.png').convert_alpha()
+restart_img = pygame.image.load('img/Buttons/RESTART.png').convert_alpha()
+bren_img = pygame.image.load('img/Buttons/BREN.png').convert_alpha()
+#background images
 pine1_img = pygame.image.load('img/background/pine1.png').convert_alpha()
 pine2_img = pygame.image.load('img/background/pine2.png').convert_alpha()
 mountain_img = pygame.image.load('img/background/mountain.png').convert_alpha()
@@ -63,6 +75,7 @@ item_boxes = {
 
 #define colours
 BG = (144, 201, 120)
+BACKGROUND = pygame.image.load('img/background/Cloud.png')
 RED = (255, 0, 0)
 WHITE = (255, 255, 255)
 GREEN = (0, 255, 0)
@@ -83,6 +96,23 @@ def draw_bg():
         screen.blit(mountain_img, ((x * width) - bg_scroll * 0.6, SCREEN_HEIGHT - mountain_img.get_height() - 300))
         screen.blit(pine1_img, ((x * width) - bg_scroll * 0.7, SCREEN_HEIGHT - pine1_img.get_height() - 150))
         screen.blit(pine2_img, ((x * width) - bg_scroll * 0.8, SCREEN_HEIGHT - pine2_img.get_height()))
+
+#function to reset level
+def reset_level():
+    enemy_group.empty()
+    pebble_group.empty()
+    mustard_group.empty()
+    explosion_group.empty()
+    item_box_group.empty()
+    decoration_group.empty()
+    exit_group.empty()
+
+    #create empty tile list
+    data = []
+    for row in range(ROWS):
+        r = [-1] * COLS
+        data.append(r)
+    return data
 
 class Character(pygame.sprite.Sprite):
     def __init__(self, char_type, x, y, scale, speed, ammo, mustards):
@@ -188,6 +218,16 @@ class Character(pygame.sprite.Sprite):
                     self.in_air = False
                     dy = tile[1].top - self.rect.bottom
 
+        #check for collision with exit
+        level_complete = False
+        if pygame.sprite.spritecollide(self, exit_group, False):
+            level_complete = True
+
+
+        #check if fallen off the map
+        if self.rect.bottom > SCREEN_HEIGHT:
+            self.health = 0
+
         #check if going off the edges of the screen
         if self.char_type == 'player':
             if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
@@ -204,7 +244,7 @@ class Character(pygame.sprite.Sprite):
                 self.rect.x -= dx
                 screen_scroll = -dx
 
-        return screen_scroll
+        return screen_scroll, level_complete
 
     def shoot(self):
         if self.shoot_cooldown == 0 and self.ammo > 0:
@@ -305,27 +345,27 @@ class World():
                     tile_data = (img, img_rect)
                     if tile >= 0 and tile <= 1:
                         self.obstacle_list.append(tile_data)
-                    elif tile >= 2 and tile <= 15:
+                    elif tile >= 2 and tile <= 14:
                         decoration = Decoration(img, x * TILE_SIZE, y * TILE_SIZE)
                         decoration_group.add(decoration)
-                    elif tile == 16:#create player
+                    elif tile == 15:#create player
                         player = Character('player', x * TILE_SIZE, y * TILE_SIZE, .5, 5, 5, 3)
                         health_bar = HealthBar(10, 10, player.health, player.health)
-                    elif tile == 17:#create enemies
+                    elif tile == 16:#create enemies
                         enemy = Character('enemy', x * TILE_SIZE, y * TILE_SIZE, .5, 2, 0, 0)
                         enemy_group.add(enemy)
-                    elif tile == 18:#create ammo box
+                    elif tile == 17:#create ammo box
                         item_box = ItemBox('Ammo', x * TILE_SIZE, y * TILE_SIZE)
                         item_box_group.add(item_box)
-                    elif tile == 19:#create grenade box
+                    elif tile == 18:#create grenade box
                         item_box = ItemBox('Grenade', x * TILE_SIZE, y * TILE_SIZE)
                         item_box_group.add(item_box)
-                    elif tile == 20:#create health box
+                    elif tile == 19:#create health box
                         item_box = ItemBox('Health', x * TILE_SIZE, y * TILE_SIZE)
                         item_box_group.add(item_box)
-                    #elif tile == 25:#create exit
-                        #exit = Exit(img, x * TILE_SIZE, y * TILE_SIZE)
-                        #exit_group.add(exit)
+                    elif tile == 20:#create exit
+                        exit = Exit(img, x * TILE_SIZE, y * TILE_SIZE)
+                        exit_group.add(exit)
 
         return player, health_bar
 
@@ -528,6 +568,14 @@ class Explosion(pygame.sprite.Sprite):
                 self.image = self.images[self.frame_index]
 
 #----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#create buttons
+sausage_button = button.Button(SCREEN_WIDTH // 2 - 245, SCREEN_HEIGHT // 2 - 450, sausage_img, 1)
+start_button = button.Button(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 - 200, start_img, 1)
+options_button = button.Button(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 - 120, options_img, 1)
+credits_button = button.Button(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 - 40, credits_img, 1)
+exit_button = button.Button(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 40, exit_img, 1)
+restart_button = button.Button(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 - 200, restart_img, 1)
+bren_button = button.Button(SCREEN_WIDTH // 2 + 225, SCREEN_HEIGHT // 2 + 190, bren_img, 1)
 
 #create sprite groups
 enemy_group = pygame.sprite.Group()
@@ -557,64 +605,104 @@ while run:
 
     clock.tick(FPS)
 
-    #update background
-    draw_bg()
-    #draw world map
-    world.draw()
-    #show player health
-    health_bar.draw(player.health)
-    #show pebbles
-    draw_text(f'PEBBLES: ', font, WHITE, 10, 45) #(Size, Height)
-    for x in range(player.ammo):
-        screen.blit(pebble_img, (120 + (x * 22), 45)) #(Width, Space, Height)
-    # show mustard grenades
-    draw_text(f'MUSTARD: ', font, WHITE, 10, 80) #(Size, Height)
-    for x in range(player.mustards):
-        screen.blit(mustard_img, (125 + (x * 22), 75)) #(Width, Space, Height)
+    if start_game == False:
+        #draw main menu
+        screen.blit(BACKGROUND, (0, 0))
+        #add buttons
+        sausage_button.draw(screen)
+        if start_button.draw(screen):
+            start_game = True
+        options_button.draw(screen)
+        credits_button.draw(screen)
+        if exit_button.draw(screen):
+            run = False
+        bren_button.draw(screen)
+    else:
+        #update background
+        draw_bg()
+        #draw world map
+        world.draw()
+        #show player health
+        health_bar.draw(player.health)
+        #show pebbles
+        draw_text(f'PEBBLES: ', font, WHITE, 10, 45) #(Size, Height)
+        for x in range(player.ammo):
+            screen.blit(pebble_img, (120 + (x * 22), 45)) #(Width, Space, Height)
+        # show mustard grenades
+        draw_text(f'MUSTARD: ', font, WHITE, 10, 80) #(Size, Height)
+        for x in range(player.mustards):
+            screen.blit(mustard_img, (125 + (x * 22), 75)) #(Width, Space, Height)
 
-    player.update()
-    player.draw()
+        player.update()
+        player.draw()
 
-    for enemy in enemy_group:
-        enemy.ai()
-        enemy.update()
-        enemy.draw()
+        for enemy in enemy_group:
+            enemy.ai()
+            enemy.update()
+            enemy.draw()
 
-    #update and draw groups
-    pebble_group.update()
-    mustard_group.update()
-    explosion_group.update()
-    item_box_group.update()
-    decoration_group.update()
-    exit_group.update()
-    pebble_group.draw(screen)
-    mustard_group.draw(screen)
-    explosion_group.draw(screen)
-    item_box_group.draw(screen)
-    decoration_group.draw(screen)
-    exit_group.draw(screen)
+        #update and draw groups
+        pebble_group.update()
+        mustard_group.update()
+        explosion_group.update()
+        item_box_group.update()
+        decoration_group.update()
+        exit_group.update()
+        pebble_group.draw(screen)
+        mustard_group.draw(screen)
+        explosion_group.draw(screen)
+        item_box_group.draw(screen)
+        decoration_group.draw(screen)
+        exit_group.draw(screen)
 
-    #update player actions
-    if player.alive:
-        #throw pebbles
-        if shoot:
-            player.shoot()
-        #throw mustard grenade
-        elif mustard and mustard_thrown == False and player.mustards > 0:
-            mustard = Mustard(player.rect.centerx + (0.5 * player.rect.size[0] * player.direction),\
-                              player.rect.top, player.direction)
-            mustard_group.add(mustard)
-            #reduce mustard grenades
-            player.mustards -= 1
-            mustard_thrown = True
-        if player.in_air:
-            player.update_action(2)     # 2: jump
-        elif moving_left or moving_right:
-            player.update_action(1)     # 1: run
+        #update player actions
+        if player.alive:
+            #throw pebbles
+            if shoot:
+                player.shoot()
+            #throw mustard grenade
+            elif mustard and mustard_thrown == False and player.mustards > 0:
+                mustard = Mustard(player.rect.centerx + (0.5 * player.rect.size[0] * player.direction),\
+                                  player.rect.top, player.direction)
+                mustard_group.add(mustard)
+                #reduce mustard grenades
+                player.mustards -= 1
+                mustard_thrown = True
+            if player.in_air:
+                player.update_action(2)     # 2: jump
+            elif moving_left or moving_right:
+                player.update_action(1)     # 1: run
+            else:
+                player.update_action(0)     # 0: idle
+            screen_scroll, level_complete = player.move(moving_left, moving_right)
+            bg_scroll -= screen_scroll
+            #check if player has completed the level
+            if level_complete:
+                level += 1
+                bg_scroll = 0
+                world_data = reset_level()
+                if level <= MAX_LEVELS:
+                    # load in level data and create world
+                    with open(f'level{level}_data.csv', newline='') as csvfile:
+                        reader = csv.reader(csvfile, delimiter=',')
+                        for x, row in enumerate(reader):
+                            for y, tile in enumerate(row):
+                                world_data[x][y] = int(tile)
+                    world = World()
+                    player, health_bar = world.process_data(world_data)
         else:
-            player.update_action(0)     # 0: idle
-        screen_scroll = player.move(moving_left, moving_right)
-        bg_scroll -= screen_scroll
+            screen_scroll = 0
+            if restart_button.draw(screen):
+                bg_scroll = 0
+                world_data = reset_level()
+                #load in level data and create world
+                with open(f'level{level}_data.csv', newline='') as csvfile:
+                    reader = csv.reader(csvfile, delimiter=',')
+                    for x, row in enumerate(reader):
+                        for y, tile in enumerate(row):
+                            world_data[x][y] = int(tile)
+                world = World()
+                player, health_bar = world.process_data(world_data)
 
     for event in pygame.event.get():
         #quit game
