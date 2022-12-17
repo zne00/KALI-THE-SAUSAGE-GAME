@@ -1,9 +1,11 @@
 import pygame
+from pygame import mixer
 import os
 import random
 import csv
 import button
 
+mixer.init()
 pygame.init()
 
 
@@ -38,6 +40,11 @@ moving_right = False
 shoot = False
 mustard = False
 mustard_thrown = False
+
+#load music and sounds
+pygame.mixer.music.load('audio/OST_MAINMENU.mp3')
+pygame.mixer.music.set_volume(0.3)
+pygame.mixer.music.play(-1, 0.0, 5000)
 
 #load images
 #button images
@@ -82,7 +89,7 @@ GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
 
 #define font
-font = pygame.font.SysFont('Futura', 30)
+font = pygame.font.Font('img/Assets/font.ttf', 15)
 
 def draw_text(text, font, text_col, x, y):
     img = font.render(text, True, text_col)
@@ -628,11 +635,11 @@ while run:
         #show pebbles
         draw_text(f'PEBBLES: ', font, WHITE, 10, 45) #(Size, Height)
         for x in range(player.ammo):
-            screen.blit(pebble_img, (120 + (x * 22), 45)) #(Width, Space, Height)
+            screen.blit(pebble_img, (135 + (x * 22), 45)) #(Width, Space, Height)
         # show mustard grenades
         draw_text(f'MUSTARD: ', font, WHITE, 10, 80) #(Size, Height)
         for x in range(player.mustards):
-            screen.blit(mustard_img, (125 + (x * 22), 75)) #(Width, Space, Height)
+            screen.blit(mustard_img, (135 + (x * 22), 75)) #(Width, Space, Height)
 
         player.update()
         player.draw()
